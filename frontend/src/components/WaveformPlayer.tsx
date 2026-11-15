@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import { Play, Pause, Volume2, VolumeX, Download, RotateCcw, Gauge } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Download, RotateCcw, Gauge, Mic, Music2 } from 'lucide-react';
 
 interface WaveformPlayerProps {
   audioUrl: string;
@@ -32,9 +32,9 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
   // Distinct wave colors based on stem type:
   // Vocals: Vivid Purple (#6558D9)
-  // Instrumental: Crisp Indigo/Cyan Accent (#3B82F6)
+  // Instrumental: Crisp Cobalt Blue (#2563EB)
   const isVocal = stemType === 'vocals';
-  const waveColor = isVocal ? '#C4B5FD' : '#93C5FD';
+  const waveColor = isVocal ? '#DDD6FE' : '#BFDBFE';
   const progressColor = isVocal ? '#6558D9' : '#2563EB';
 
   useEffect(() => {
@@ -48,12 +48,12 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
       container: containerRef.current,
       waveColor: waveColor,
       progressColor: progressColor,
-      cursorColor: '#171923',
+      cursorColor: isVocal ? '#6558D9' : '#2563EB',
       cursorWidth: 2,
       barWidth: 3,
       barGap: 2,
       barRadius: 3,
-      height: 64,
+      height: 72,
       normalize: true,
       url: audioUrl,
     });
@@ -69,7 +69,6 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
     ws.on('play', () => {
       setIsPlaying(true);
-      // Notify other players to pause
       window.dispatchEvent(
         new CustomEvent('marhaba_audio_play', { detail: { url: audioUrl } })
       );
@@ -85,7 +84,6 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
       setCurrentTime(time);
     });
 
-    // Handle global playback coordination
     const handleOtherPlay = (e: Event) => {
       const customEvent = e as CustomEvent<{ url: string }>;
       if (customEvent.detail?.url !== audioUrl && ws.isPlaying()) {
@@ -148,55 +146,66 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   };
 
   return (
-    <div className="bg-[#FFFFFF] border border-[#E8EAF0] rounded-2xl p-5 shadow-xs hover:border-[#6558D9]/30 transition-all">
+    <div
+      className={`bg-white border rounded-3xl p-5 sm:p-6 shadow-xs transition-all duration-200 ${
+        isVocal
+          ? 'border-purple-100 hover:border-[#6558D9]/40 hover:shadow-[#6558D9]/5'
+          : 'border-blue-100 hover:border-blue-400/50 hover:shadow-blue-500/5'
+      }`}
+    >
       {/* Stem Header */}
-      <div className="flex items-center justify-between mb-3 pb-3 border-b border-[#E8EAF0]/80">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-[#E8EAF0]">
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`w-3 h-3 rounded-full ${
-              isVocal ? 'bg-[#6558D9]' : 'bg-[#2563EB]'
+            className={`p-2.5 rounded-2xl shrink-0 ${
+              isVocal ? 'bg-[#F0EDFF] text-[#6558D9]' : 'bg-blue-50 text-blue-600'
             }`}
-          />
-          <div>
+          >
+            {isVocal ? <Mic className="w-5 h-5" /> : <Music2 className="w-5 h-5" />}
+          </div>
+
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h4 className="text-sm font-extrabold text-[#171923] tracking-tight">
+              <h4 className="text-sm sm:text-base font-extrabold text-[#171923] tracking-tight truncate">
                 {title}
               </h4>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                  isVocal
-                    ? 'bg-[#F0EDFF] text-[#6558D9]'
-                    : 'bg-blue-50 text-blue-600'
+                className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                  isVocal ? 'bg-[#F0EDFF] text-[#6558D9]' : 'bg-blue-50 text-blue-600'
                 }`}
               >
                 {stemType}
               </span>
-              <span className="text-[10px] font-bold bg-gray-100 text-[#777D8C] px-1.5 py-0.5 rounded uppercase">
+              <span className="text-[10px] font-bold bg-slate-100 text-[#777D8C] px-2 py-0.5 rounded-md uppercase">
                 {format}
               </span>
             </div>
-            <p className="text-[11px] text-[#777D8C] truncate max-w-xs sm:max-w-md mt-0.5">
+            <p className="text-[11px] text-[#777D8C] truncate max-w-xs sm:max-w-md mt-0.5 font-medium">
               {fileName}
             </p>
           </div>
         </div>
 
-        {/* Individual Download */}
+        {/* Individual Download Button */}
         <a
           href={audioUrl + '&as_attachment=true'}
           download={fileName}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F6F7FB] hover:bg-[#F0EDFF] text-[#171923] hover:text-[#6558D9] border border-[#E8EAF0] hover:border-[#6558D9]/30 text-xs font-bold transition-all shadow-2xs"
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs border ${
+            isVocal
+              ? 'bg-[#F0EDFF] hover:bg-[#E4DFFF] text-[#6558D9] border-purple-200 hover:border-[#6558D9]/40'
+              : 'bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 hover:border-blue-400'
+          }`}
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Download</span>
+          <span>Download {format.toUpperCase()}</span>
         </a>
       </div>
 
       {/* Waveform View */}
-      <div className="relative my-3 bg-[#F6F7FB]/60 rounded-xl p-3 border border-[#E8EAF0]/50">
+      <div className="relative my-3.5 bg-[#F6F7FB]/70 rounded-2xl p-3.5 border border-[#E8EAF0]/60">
         {!isReady && (
-          <div className="h-16 flex items-center justify-center text-xs text-[#777D8C] animate-pulse">
-            Rendering dynamic waveform...
+          <div className="h-18 flex items-center justify-center text-xs font-semibold text-[#777D8C] animate-pulse">
+            Rendering high-fidelity waveform...
           </div>
         )}
         <div ref={containerRef} className={isReady ? 'block' : 'hidden'} />
@@ -210,10 +219,10 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
             type="button"
             onClick={togglePlay}
             disabled={!isReady}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all active:scale-95 shadow-md ${
               isVocal
-                ? 'bg-[#6558D9] hover:bg-[#5446C9] text-white'
-                : 'bg-[#2563EB] hover:bg-blue-700 text-white'
+                ? 'bg-gradient-to-tr from-[#6558D9] to-[#8072FA] text-white hover:shadow-[#6558D9]/30'
+                : 'bg-gradient-to-tr from-[#2563EB] to-[#4F86F7] text-white hover:shadow-blue-500/30'
             } ${!isReady ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={isPlaying ? 'Pause stem' : 'Play stem'}
           >
@@ -236,24 +245,24 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
           </button>
 
           {/* Time indicator */}
-          <div className="text-xs font-semibold text-[#171923] font-mono px-2">
-            {formatTime(currentTime)} <span className="text-[#777D8C]">/</span> {formatTime(totalDuration)}
+          <div className="text-xs font-mono font-bold text-[#171923] px-2 tabular-nums">
+            {formatTime(currentTime)} <span className="text-[#777D8C] font-normal">/</span> {formatTime(totalDuration)}
           </div>
         </div>
 
         {/* Speed Controls & Volume */}
         <div className="flex items-center gap-4">
           {/* Speed Selector */}
-          <div className="flex items-center gap-1 bg-[#F6F7FB] border border-[#E8EAF0] rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-[#F6F7FB] border border-[#E8EAF0] rounded-xl p-1 shadow-2xs">
             <Gauge className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
             {[0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
               <button
                 key={rate}
                 type="button"
                 onClick={() => handleSpeedChange(rate)}
-                className={`px-1.5 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
                   playbackRate === rate
-                    ? 'bg-white text-[#6558D9] shadow-xs font-bold'
+                    ? 'bg-white text-[#6558D9] shadow-xs'
                     : 'text-[#777D8C] hover:text-[#171923]'
                 }`}
               >
@@ -267,7 +276,7 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
             <button
               type="button"
               onClick={toggleMute}
-              className="p-1.5 text-[#777D8C] hover:text-[#171923] transition-colors"
+              className="p-1.5 text-[#777D8C] hover:text-[#171923] transition-colors rounded-lg hover:bg-slate-100"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
               {isMuted ? <VolumeX className="w-4 h-4 text-[#E5484D]" /> : <Volume2 className="w-4 h-4" />}

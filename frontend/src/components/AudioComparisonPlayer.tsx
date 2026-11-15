@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Play, Pause, Volume2, VolumeX, Gauge, Music2, Mic, Radio } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Play, Pause, Volume2, VolumeX, Gauge, Music2, Mic, Radio, Disc3 } from 'lucide-react';
 
 interface AudioComparisonPlayerProps {
   originalUrl?: string | null;
@@ -49,7 +49,6 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
 
       setActiveSource(newSource);
 
-      // Re-apply saved timestamp and playback state once loaded
       const handleLoadedData = () => {
         if (audioRef.current) {
           audioRef.current.currentTime = savedTime;
@@ -60,12 +59,33 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
         }
       };
 
-      // Set listener once
       audioRef.current.addEventListener('loadeddata', handleLoadedData, { once: true });
     } else {
       setActiveSource(newSource);
     }
   };
+
+  // Keyboard navigation for studio workflow
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === '1' && originalUrl) {
+        handleSwitchSource('original');
+      } else if (e.key === '2' && vocalsUrl) {
+        handleSwitchSource('vocals');
+      } else if (e.key === '3' && instrumentalUrl) {
+        handleSwitchSource('instrumental');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -127,7 +147,7 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="bg-white border border-[#E8EAF0] rounded-2xl p-5 shadow-sm space-y-4">
+    <div className="bg-gradient-to-b from-white to-[#FAF9FF] border border-[#E8EAF0] rounded-3xl p-6 sm:p-7 shadow-md space-y-5">
       {/* Hidden audio element */}
       {currentUrl && (
         <audio
@@ -148,81 +168,99 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
       )}
 
       {/* Header & Source A/B Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8EAF0]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#E8EAF0]">
         <div>
-          <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-[#6558D9]" />
-            <h4 className="text-sm font-bold text-[#171923]">Synchronized A/B Comparison</h4>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#F0EDFF] text-[#6558D9]">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-lg bg-[#F0EDFF] text-[#6558D9]">
+              <Radio className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-extrabold text-[#171923] tracking-tight">
+              Mastering Studio • Synchronized A/B Comparison
+            </h4>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#6558D9] text-white">
               Instant Audition
             </span>
           </div>
-          <p className="text-xs text-[#777D8C] mt-0.5">
-            Switch smoothly between audio channels while maintaining identical playback position.
+          <p className="text-xs text-[#777D8C] font-medium">
+            Seamlessly toggle between original mix and separated stems with synchronized playback positions.
           </p>
         </div>
 
         {/* Channel Selector Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#F6F7FB] border border-[#E8EAF0] rounded-xl self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-[#F6F7FB] border border-[#E8EAF0] rounded-2xl self-start lg:self-auto shadow-inner">
           {originalUrl && (
             <button
               onClick={() => handleSwitchSource('original')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSource === 'original'
-                  ? 'bg-white text-[#171923] shadow-sm border border-[#E8EAF0]'
+                  ? 'bg-white text-[#171923] shadow-xs border border-[#E8EAF0]'
                   : 'text-[#777D8C] hover:text-[#171923]'
               }`}
             >
-              <Music2 className="w-3.5 h-3.5 text-slate-500" />
+              <Disc3 className={`w-3.5 h-3.5 ${activeSource === 'original' && isPlaying ? 'animate-spin' : ''}`} />
               <span>Original Audio</span>
+              <kbd className="hidden sm:inline text-[9px] bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-500">1</kbd>
             </button>
           )}
 
           {vocalsUrl && (
             <button
               onClick={() => handleSwitchSource('vocals')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSource === 'vocals'
-                  ? 'bg-[#6558D9] text-white shadow-sm'
+                  ? 'bg-[#6558D9] text-white shadow-md shadow-[#6558D9]/25'
                   : 'text-[#777D8C] hover:text-[#6558D9]'
               }`}
             >
               <Mic className="w-3.5 h-3.5" />
               <span>Extracted Vocals</span>
+              <kbd className={`hidden sm:inline text-[9px] px-1 py-0.5 rounded font-mono ${activeSource === 'vocals' ? 'bg-[#5446C9] text-white' : 'bg-slate-100 text-slate-500'}`}>2</kbd>
             </button>
           )}
 
           {instrumentalUrl && (
             <button
               onClick={() => handleSwitchSource('instrumental')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSource === 'instrumental'
-                  ? 'bg-[#6558D9] text-white shadow-sm'
-                  : 'text-[#777D8C] hover:text-[#6558D9]'
+                  ? 'bg-[#2563EB] text-white shadow-md shadow-blue-500/25'
+                  : 'text-[#777D8C] hover:text-[#2563EB]'
               }`}
             >
               <Music2 className="w-3.5 h-3.5" />
               <span>Instrumental</span>
+              <kbd className={`hidden sm:inline text-[9px] px-1 py-0.5 rounded font-mono ${activeSource === 'instrumental' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'}`}>3</kbd>
             </button>
           )}
         </div>
       </div>
 
-      {/* Visual Audio Progress Track */}
-      <div className="space-y-1.5">
-        <div className="relative w-full h-8 flex items-center group cursor-pointer">
-          {/* Waveform-like background bars */}
-          <div className="absolute inset-0 flex items-center justify-between gap-0.5 pointer-events-none opacity-40">
-            {Array.from({ length: 48 }).map((_, i) => {
-              const heightPercent = 25 + Math.sin(i * 0.4) * 20 + ((i % 5) * 10);
-              const isActive = (i / 48) * 100 <= progressPercent;
+      {/* Studio Waveform Spectrum Simulation Track */}
+      <div className="space-y-2">
+        <div className="relative w-full h-14 bg-[#F6F7FB] border border-[#E8EAF0] rounded-2xl flex items-center px-4 overflow-hidden group cursor-pointer">
+          {/* Animated Waveform equalizer bars */}
+          <div className="absolute inset-0 flex items-center justify-between px-3 gap-0.5 pointer-events-none opacity-45">
+            {Array.from({ length: 64 }).map((_, i) => {
+              const heightPercent = 20 + Math.sin(i * 0.3) * 25 + ((i % 7) * 8);
+              const isActive = (i / 64) * 100 <= progressPercent;
+              const isVocalActive = activeSource === 'vocals';
+              const isInstActive = activeSource === 'instrumental';
+
               return (
                 <div
                   key={i}
                   className={`w-1 rounded-full transition-all duration-150 ${
-                    isActive ? 'bg-[#6558D9] opacity-90' : 'bg-slate-200'
+                    isActive
+                      ? isVocalActive
+                        ? 'bg-[#6558D9]'
+                        : isInstActive
+                        ? 'bg-[#2563EB]'
+                        : 'bg-slate-700'
+                      : 'bg-slate-200'
                   }`}
-                  style={{ height: `${heightPercent}%` }}
+                  style={{
+                    height: isPlaying ? `${heightPercent + (Math.sin(i + currentTime * 5) * 15)}%` : `${heightPercent}%`,
+                  }}
                 />
               );
             })}
@@ -237,50 +275,74 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
             onChange={handleSeekChange}
             onMouseDown={() => setIsSeeking(true)}
             onMouseUp={() => setIsSeeking(false)}
-            className="w-full h-2 appearance-none bg-slate-200 rounded-lg cursor-pointer accent-[#6558D9] z-10 opacity-70 hover:opacity-100 transition-opacity"
+            className="w-full h-3 appearance-none bg-transparent rounded-lg cursor-pointer accent-[#6558D9] z-10"
           />
         </div>
 
-        {/* Timestamps */}
-        <div className="flex justify-between text-xs font-medium text-[#777D8C] tabular-nums px-0.5">
-          <span>{formatTime(currentTime)}</span>
-          <span className="text-[11px] font-semibold text-[#6558D9] uppercase tracking-wider">
-            Auditioning: {activeSource === 'original' ? 'Original Mix' : activeSource === 'vocals' ? 'Isolated Vocals' : 'Instrumental Backing'}
-          </span>
-          <span>{formatTime(duration)}</span>
+        {/* Timestamps & Active Stem Indicator */}
+        <div className="flex justify-between items-center text-xs font-semibold text-[#777D8C] tabular-nums px-1">
+          <span className="font-mono text-[#171923] text-sm">{formatTime(currentTime)}</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-[#E8EAF0] text-[11px] font-bold">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                activeSource === 'vocals'
+                  ? 'bg-[#6558D9]'
+                  : activeSource === 'instrumental'
+                  ? 'bg-[#2563EB]'
+                  : 'bg-slate-700'
+              }`}
+            />
+            <span className="uppercase text-[#171923]">
+              {activeSource === 'original'
+                ? 'Original Master'
+                : activeSource === 'vocals'
+                ? 'Isolated Vocal Stem'
+                : 'Instrumental Stem'}
+            </span>
+          </div>
+          <span className="font-mono text-slate-500">{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* Playback Controls & Utility Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        {/* Play/Pause & Fast Seek */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+        {/* Play/Pause & Filename */}
         <div className="flex items-center gap-3">
           <button
             onClick={togglePlay}
             disabled={!currentUrl}
-            className="w-10 h-10 rounded-full bg-[#6558D9] hover:bg-[#5245c4] active:scale-95 text-white flex items-center justify-center shadow-md transition-all disabled:opacity-50"
-            title={isPlaying ? 'Pause' : 'Play'}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
+              activeSource === 'vocals'
+                ? 'bg-gradient-to-tr from-[#6558D9] to-[#8072FA] hover:shadow-[#6558D9]/40'
+                : activeSource === 'instrumental'
+                ? 'bg-gradient-to-tr from-[#2563EB] to-[#4F86F7] hover:shadow-blue-500/40'
+                : 'bg-gradient-to-tr from-slate-800 to-slate-900 hover:shadow-slate-700/40'
+            }`}
+            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
           >
             {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
           </button>
 
-          <span className="text-xs font-medium text-[#171923] truncate max-w-[200px]" title={filename}>
-            {filename}
-          </span>
+          <div>
+            <p className="text-xs font-extrabold text-[#171923] truncate max-w-[220px]" title={filename}>
+              {filename}
+            </p>
+            <p className="text-[10px] text-[#777D8C]">Press Space to play/pause</p>
+          </div>
         </div>
 
         {/* Speed Controls & Volume */}
         <div className="flex items-center gap-4">
           {/* Speed Selector */}
-          <div className="flex items-center gap-1 bg-[#F6F7FB] border border-[#E8EAF0] rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-[#F6F7FB] border border-[#E8EAF0] rounded-xl p-1 shadow-2xs">
             <Gauge className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
             {[0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
               <button
                 key={rate}
                 onClick={() => handleSpeedChange(rate)}
-                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
                   playbackRate === rate
-                    ? 'bg-white text-[#6558D9] shadow-sm font-bold'
+                    ? 'bg-white text-[#6558D9] shadow-xs'
                     : 'text-[#777D8C] hover:text-[#171923]'
                 }`}
               >
@@ -293,10 +355,10 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={toggleMute}
-              className="text-slate-400 hover:text-slate-700 transition-colors"
+              className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <input
               type="range"
@@ -305,7 +367,7 @@ export const AudioComparisonPlayer: React.FC<AudioComparisonPlayerProps> = ({
               step={0.05}
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
-              className="w-16 h-1.5 appearance-none bg-slate-200 rounded-lg accent-[#6558D9] cursor-pointer"
+              className="w-20 h-1.5 appearance-none bg-slate-200 rounded-lg accent-[#6558D9] cursor-pointer"
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, Sparkles, AlertCircle } from 'lucide-react';
+import { Mic, Sparkles, AlertCircle, Wand2, ShieldCheck, UserCheck } from 'lucide-react';
 import type { ModelInfo, OutputFormat, Job } from '../types';
 import { FileUploader } from '../components/FileUploader';
 import { ModelSelector } from '../components/ModelSelector';
@@ -148,29 +148,58 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6">
-      {/* Feature Intro Banner */}
-      <div className="bg-gradient-to-r from-[#F0EDFF] via-[#FFFFFF] to-[#F6F7FB] border border-[#E8EAF0] rounded-3xl p-6 sm:p-8 mb-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#6558D9]/10 text-[#6558D9] text-xs font-bold mb-3">
+      {/* Studio Header Banner */}
+      <div className="bg-gradient-to-r from-[#F0EDFF]/90 via-white to-[#F6F7FB] border border-[#E8EAF0] rounded-3xl p-6 sm:p-8 mb-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        {/* Subtle decorative background blur glow */}
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#6558D9]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#6558D9]/10 text-[#6558D9] text-xs font-bold mb-3 border border-[#6558D9]/15">
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI Vocal Solo Extraction</span>
           </div>
+
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#171923] tracking-tight">
-            Acapella Extractor
+            Acapella Extractor Studio
           </h2>
-          <p className="text-sm text-[#777D8C] mt-2 max-w-xl font-medium leading-relaxed">
+          <p className="text-sm text-[#777D8C] mt-2 font-medium leading-relaxed">
             Extract isolated, crystal-clear acapella vocals from any mixed audio or video track. Eliminates background drums, synths, and bass while retaining human vocal nuance, vibrato, and breath dynamics.
           </p>
+
+          <div className="flex flex-wrap items-center gap-2 mt-4 text-xs font-semibold text-[#171923]">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#E8EAF0] shadow-2xs">
+              <UserCheck className="w-3.5 h-3.5 text-[#6558D9]" />
+              Primary Focus: Isolated Vocal Stem
+            </span>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#E8EAF0] shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#16A36A]" />
+              Phase-Coherent Separation
+            </span>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 shrink-0">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#171923] bg-white px-3 py-2 rounded-xl border border-[#E8EAF0] shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#16A36A]" />
-            <span>Real AI Neural Model (Demucs v4)</span>
+        {/* Real-time Visualizer Card */}
+        <div className="relative z-10 p-4 bg-white/90 backdrop-blur-md rounded-2xl border border-[#E8EAF0] shadow-xs flex flex-col gap-2 shrink-0 self-start md:self-auto min-w-[200px]">
+          <div className="flex items-center justify-between text-xs font-bold text-[#171923]">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#16A36A] animate-pulse" />
+              Engine Online
+            </span>
+            <span className="text-[10px] text-[#6558D9] bg-[#F0EDFF] px-2 py-0.5 rounded font-extrabold">HTDemucs</span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-[#777D8C] bg-white px-3 py-2 rounded-xl border border-[#E8EAF0]">
-            <span>Primary Focus: Isolated Vocal Stem</span>
+
+          <div className="h-6 flex items-end justify-between gap-1 py-0.5 px-1 bg-[#F6F7FB] rounded-lg">
+            <span className="w-1 bg-[#6558D9] rounded-full eq-bar-1" />
+            <span className="w-1 bg-[#9185F5] rounded-full eq-bar-2" />
+            <span className="w-1 bg-[#6558D9] rounded-full eq-bar-3" />
+            <span className="w-1 bg-[#9185F5] rounded-full eq-bar-4" />
+            <span className="w-1 bg-[#6558D9] rounded-full eq-bar-5" />
+            <span className="w-1 bg-[#9185F5] rounded-full eq-bar-6" />
+            <span className="w-1 bg-[#6558D9] rounded-full eq-bar-2" />
+            <span className="w-1 bg-[#9185F5] rounded-full eq-bar-4" />
           </div>
+
+          <span className="text-[10px] text-[#777D8C] text-center font-medium">Vocal Specialist Tuning</span>
         </div>
       </div>
 
@@ -193,16 +222,16 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
         onSelectFormat={setSelectedFormat}
       />
 
-      {/* Action Bar */}
+      {/* Floating Action Bar */}
       {stagedFiles.length > 0 && (
-        <div className="sticky bottom-6 z-20 bg-[#FFFFFF] border border-[#6558D9]/30 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4 mt-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-[#F0EDFF] text-[#6558D9]">
-              <Mic className="w-5 h-5" />
+        <div className="sticky bottom-6 z-30 bg-white/95 backdrop-blur-md border border-[#6558D9]/30 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#6558D9] to-[#8678FA] text-white flex items-center justify-center shadow-md">
+              <Mic className="w-6 h-6" />
             </div>
             <div>
               <p className="text-sm font-extrabold text-[#171923]">
-                {stagedFiles.length} {stagedFiles.length === 1 ? 'file' : 'files'} selected
+                {stagedFiles.length} {stagedFiles.length === 1 ? 'audio track' : 'audio tracks'} ready
               </p>
               <p className="text-xs text-[#777D8C]">
                 Ready to isolate vocal performance ({selectedFormat.toUpperCase()})
@@ -214,9 +243,9 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
             type="button"
             onClick={handleStartExtraction}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#6558D9] hover:bg-[#5446C9] text-white text-sm font-extrabold shadow-sm transition-all active:scale-95 disabled:opacity-50"
+            className="relative overflow-hidden flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#6558D9] via-[#786AF8] to-[#9185F5] hover:opacity-95 text-white text-sm font-extrabold shadow-lg shadow-[#6558D9]/30 transition-all active:scale-95 disabled:opacity-50 shimmer-btn"
           >
-            <Sparkles className="w-4 h-4" />
+            <Wand2 className="w-4 h-4" />
             <span>{isSubmitting ? 'Queueing Jobs...' : 'Extract Acapella Now'}</span>
           </button>
         </div>
@@ -224,18 +253,22 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
 
       {/* Error notification */}
       {errorMessage && (
-        <div className="my-4 p-4 bg-red-50 border border-red-200 text-[#E5484D] rounded-2xl text-xs flex items-center gap-3">
+        <div className="my-4 p-4 bg-red-50 border border-red-200 text-[#E5484D] rounded-2xl text-xs flex items-center gap-3 shadow-2xs">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{errorMessage}</span>
+          <span className="font-semibold">{errorMessage}</span>
         </div>
       )}
 
       {/* In-Progress Jobs */}
       {workingJobs.length > 0 && (
         <div className="my-8">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-[#777D8C] mb-4">
-            Processing Queue ({workingJobs.length})
-          </h3>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#171923]">
+              Active Extraction Queue ({workingJobs.length})
+            </h3>
+            <span className="text-xs text-[#6558D9] bg-[#F0EDFF] px-2 py-0.5 rounded-full font-bold">Live</span>
+          </div>
+
           <div className="space-y-4">
             {workingJobs.map((job) => (
               <JobProgressCard
@@ -254,10 +287,10 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
       {completedJobs.length > 0 && (
         <div className="my-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#171923]">
+            <h3 className="text-base font-extrabold text-[#171923] tracking-tight">
               Extracted Vocals ({completedJobs.length})
             </h3>
-            <span className="text-xs text-[#16A36A] font-semibold">
+            <span className="text-xs text-[#16A36A] font-bold bg-[#16A36A]/10 px-2.5 py-1 rounded-full border border-[#16A36A]/20">
               Ready to preview & download
             </span>
           </div>
