@@ -2,6 +2,7 @@ import os
 import time
 import asyncio
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Set, Optional
@@ -65,26 +66,30 @@ def execute_separation_job(job_id: str):
             progress_callback=progress_cb
         )
 
-        # Step 3: Export stems
+        # Step 3: Export stems in parallel threads for maximum speed
         update_job_status("exporting", 85, f"Exporting stems to {job.output_format.upper()} format...")
 
         safe_base = storage_manager.sanitize_filename(Path(job.original_filename).stem)
         vocal_out_path = storage_manager.get_output_path(job_id, f"{safe_base}_vocals", job.output_format)
         inst_out_path = storage_manager.get_output_path(job_id, f"{safe_base}_instrumental", job.output_format)
 
-        vocal_res = audio_processor.export_audio(
-            stems_data["vocals"],
-            vocal_out_path,
-            job.output_format,
-            sample_rate=stems_data["sample_rate"]
-        )
-
-        inst_res = audio_processor.export_audio(
-            stems_data["instrumental"],
-            inst_out_path,
-            job.output_format,
-            sample_rate=stems_data["sample_rate"]
-        )
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            vocal_future = executor.submit(
+                audio_processor.export_audio,
+                stems_data["vocals"],
+                vocal_out_path,
+                job.output_format,
+                sample_rate=stems_data["sample_rate"]
+            )
+            inst_future = executor.submit(
+                audio_processor.export_audio,
+                stems_data["instrumental"],
+                inst_out_path,
+                job.output_format,
+                sample_rate=stems_data["sample_rate"]
+            )
+            vocal_res = vocal_future.result()
+            inst_res = inst_future.result()
 
         # Step 4: Record StemFile entities in DB
         vocal_stem = StemFile(

@@ -61,6 +61,7 @@ class AudioProcessor:
         cmd = [
             self.ffmpeg,
             "-y",
+            "-threads", "4",
             "-i", str(input_path),
             "-vn", # disable video if video container
             "-ac", "2", # force stereo
@@ -107,6 +108,7 @@ class AudioProcessor:
             cmd = [
                 self.ffmpeg,
                 "-y",
+                "-threads", "4",
                 "-i", str(temp_wav),
                 "-codec:a", "libmp3lame",
                 "-b:a", "320k",

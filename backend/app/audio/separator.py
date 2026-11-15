@@ -20,6 +20,8 @@ class DemucsSeparator:
             num_cpus = os.cpu_count() or 4
             torch.set_num_threads(num_cpus)
             torch.set_num_interop_threads(min(2, num_cpus))
+        if hasattr(torch, "set_float32_matmul_precision"):
+            torch.set_float32_matmul_precision("high")
 
     def get_available_models(self) -> List[Dict[str, Any]]:
         """Returns genuine, installed and compatible AI models."""
@@ -81,13 +83,13 @@ class DemucsSeparator:
             audio_data = audio_data[:, :2]
 
         # Convert to [channels, samples] for Demucs
-        audio_tensor = torch.from_numpy(audio_data.T).float().unsqueeze(0).to(self.device)
+        audio_tensor = torch.from_numpy(audio_data.T).float().unsqueeze(0).contiguous().to(self.device)
 
         # Calculate exact number of chunks for live granular progress reporting
         length = audio_tensor.shape[-1]
         segment_sec = 7.8
         segment_samples = int(sample_rate * segment_sec)
-        overlap = 0.20  # 20% overlap balances smooth segment boundaries with high CPU speed
+        overlap = 0.08  # 8% overlap maximizes throughput on multi-core CPU while preserving seamless boundaries
         stride = int((1 - overlap) * segment_samples)
         offsets = list(range(0, length, stride))
         total_chunks = max(1, len(offsets))
@@ -121,8 +123,8 @@ class DemucsSeparator:
                         f"Separating audio: Chunk {completed_chunks}/{total_chunks} ({int(ratio * 100)}%) • {time_msg}"
                     )
 
-        # Run inference with Demucs apply_model and real-time chunk callbacks
-        with torch.no_grad():
+        # Run high-performance inference with Demucs apply_model using torch.inference_mode()
+        with torch.inference_mode():
             sources = apply_model(
                 model,
                 audio_tensor,

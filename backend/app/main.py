@@ -1,4 +1,5 @@
 import os
+import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from .core.config import settings
 from .database.session import init_db, SessionLocal
 from .database.models import Job
 from .audio.worker import start_queue_worker, stop_queue_worker, enqueue_job
+from .audio.separator import demucs_separator
 from .api import jobs, files, models, history, settings as api_settings, health
 
 @asynccontextmanager
@@ -22,6 +24,9 @@ async def lifespan(app: FastAPI):
     
     # Start smart background worker queue
     await start_queue_worker()
+
+    # Pre-warm AI separation model in background so jobs start instantly without initial loading freeze
+    asyncio.create_task(asyncio.to_thread(demucs_separator.load_model, "htdemucs"))
 
     # Automatically recover any interrupted jobs from previous sessions
     db = SessionLocal()
