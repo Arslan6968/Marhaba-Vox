@@ -19,7 +19,7 @@ class Job(Base):
     # tool_mode: 'vocal_remover' or 'acapella_extractor'
     tool_mode = Column(String(50), nullable=False, default="acapella_extractor")
     model_name = Column(String(50), nullable=False, default="htdemucs")
-    output_format = Column(String(10), nullable=False, default="wav")
+    output_format = Column(String(10), nullable=False, default="mp3")
     
     # status: waiting, uploading, preparing, separating, exporting, completed, failed, cancelled
     status = Column(String(30), nullable=False, default="waiting")

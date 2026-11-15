@@ -48,7 +48,7 @@ function AppContent() {
   ]);
 
   const [settings, setSettings] = useState<AppSettings>({
-    default_output_format: 'wav',
+    default_output_format: 'mp3',
     default_model: 'htdemucs',
     default_playback_rate: 1.0,
     max_upload_size_mb: 100,

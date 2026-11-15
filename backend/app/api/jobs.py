@@ -57,7 +57,7 @@ async def create_job(
     file: UploadFile = File(...),
     tool_mode: str = Form("acapella_extractor"),
     model_name: str = Form("htdemucs"),
-    output_format: str = Form("wav"),
+    output_format: str = Form("mp3"),
     db: Session = Depends(get_db)
 ):
     if tool_mode not in ["vocal_remover", "acapella_extractor"]:

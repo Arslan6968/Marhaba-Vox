@@ -81,7 +81,7 @@ export async function fetchModels(): Promise<ModelInfo[]> {
 
 export async function fetchSettings(): Promise<AppSettings> {
   return safeFetchJson<AppSettings>(`${API_BASE}/settings`, undefined, {
-    default_output_format: 'wav',
+    default_output_format: 'mp3',
     default_model: 'htdemucs',
     default_playback_rate: 1.0,
     max_upload_size_mb: 100,

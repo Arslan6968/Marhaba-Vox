@@ -25,7 +25,7 @@ class Settings:
         ".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma", ".aiff", ".mp4", ".mkv"
     })
     SUPPORTED_OUTPUT_FORMATS: List[str] = field(default_factory=lambda: ["mp3", "wav", "flac"])
-    DEFAULT_OUTPUT_FORMAT: str = "wav"
+    DEFAULT_OUTPUT_FORMAT: str = "mp3"
     DEFAULT_MODEL: str = "htdemucs"
     
     # Audio Processing Settings

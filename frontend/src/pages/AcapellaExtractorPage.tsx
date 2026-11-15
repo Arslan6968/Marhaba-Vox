@@ -27,6 +27,11 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Keep format synced with default preference
+  useEffect(() => {
+    setSelectedFormat(defaultFormat);
+  }, [defaultFormat]);
+
   // Load existing and active jobs on initial mount
   useEffect(() => {
     let isMounted = true;
