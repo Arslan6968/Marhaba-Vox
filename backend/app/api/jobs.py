@@ -55,13 +55,13 @@ def serialize_job(job: Job, base_url: str) -> JobResponse:
 async def create_job(
     request: Request,
     file: UploadFile = File(...),
-    tool_mode: str = Form("vocal_remover"),
+    tool_mode: str = Form("acapella_extractor"),
     model_name: str = Form("htdemucs"),
     output_format: str = Form("wav"),
     db: Session = Depends(get_db)
 ):
     if tool_mode not in ["vocal_remover", "acapella_extractor"]:
-        tool_mode = "vocal_remover"
+        tool_mode = "acapella_extractor"
 
     if output_format.lower() not in settings.SUPPORTED_OUTPUT_FORMATS:
         output_format = settings.DEFAULT_OUTPUT_FORMAT

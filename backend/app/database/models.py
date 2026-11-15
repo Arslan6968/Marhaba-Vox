@@ -17,7 +17,7 @@ class Job(Base):
     duration_seconds = Column(Float, default=0.0)
     
     # tool_mode: 'vocal_remover' or 'acapella_extractor'
-    tool_mode = Column(String(50), nullable=False, default="vocal_remover")
+    tool_mode = Column(String(50), nullable=False, default="acapella_extractor")
     model_name = Column(String(50), nullable=False, default="htdemucs")
     output_format = Column(String(10), nullable=False, default="wav")
     

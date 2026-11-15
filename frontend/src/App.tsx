@@ -17,7 +17,18 @@ function AppContent() {
     return sessionStorage.getItem('marhaba_vox_intro_seen') === 'true';
   });
 
-  const [activeTab, setActiveTab] = useState<NavItemKey>('vocal_remover');
+  const [activeTab, setActiveTabState] = useState<NavItemKey>(() => {
+    const saved = localStorage.getItem('marhaba_vox_active_tab');
+    if (saved && ['acapella_extractor', 'vocal_remover', 'history', 'settings'].includes(saved)) {
+      return saved as NavItemKey;
+    }
+    return 'acapella_extractor';
+  });
+
+  const setActiveTab = (tab: NavItemKey) => {
+    localStorage.setItem('marhaba_vox_active_tab', tab);
+    setActiveTabState(tab);
+  };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Global state

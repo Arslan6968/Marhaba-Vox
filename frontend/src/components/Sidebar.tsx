@@ -29,18 +29,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const vocalTools: NavItem[] = [
     {
-      id: 'vocal_remover',
-      name: 'Vocal Remover',
-      icon: Music2,
-      badge: '2-Stem',
-      description: 'Separate vocals & instrumental'
-    },
-    {
       id: 'acapella_extractor',
       name: 'Acapella Extractor',
       icon: Mic,
       badge: 'Solo',
       description: 'Isolate vocal performance'
+    },
+    {
+      id: 'vocal_remover',
+      name: 'Vocal Remover',
+      icon: Music2,
+      badge: '2-Stem',
+      description: 'Separate vocals & instrumental'
     },
   ];
 
