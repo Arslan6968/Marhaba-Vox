@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface StartupAnimationProps {
@@ -6,13 +6,24 @@ interface StartupAnimationProps {
 }
 
 export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete }) => {
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
-    // Automatically transition to dashboard after 2.2 seconds
+    // Transition smoothly after ~1.1 seconds
     const timer = setTimeout(() => {
-      onComplete();
-    }, 2200);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+      onCompleteRef.current();
+    }, 1100);
+
+    const handleKey = () => {
+      onCompleteRef.current();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, []);
 
   return (
     <motion.div

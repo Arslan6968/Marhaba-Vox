@@ -5,7 +5,7 @@ import { FileUploader } from '../components/FileUploader';
 import { ModelSelector } from '../components/ModelSelector';
 import { JobProgressCard } from '../components/JobProgressCard';
 import { ResultCard } from '../components/ResultCard';
-import { createJob, fetchJob, deleteJob, cancelJob, retryJob } from '../services/api';
+import { createJob, fetchJob, fetchJobs, deleteJob, cancelJob, retryJob } from '../services/api';
 import { useToast } from '../components/Toast';
 
 interface AcapellaExtractorPageProps {
@@ -29,20 +29,19 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
 
   // Load existing and active jobs on initial mount
   useEffect(() => {
+    let isMounted = true;
     const loadInitialJobs = async () => {
       try {
-        const res = await fetch('/api/v1/jobs?tool_mode=acapella_extractor&limit=10');
-        if (res.ok) {
-          const data: Job[] = await res.json();
-          if (Array.isArray(data)) {
-            setActiveJobs(data);
-          }
+        const data = await fetchJobs('acapella_extractor', 10);
+        if (isMounted && Array.isArray(data)) {
+          setActiveJobs(data);
         }
       } catch (err) {
         console.error('Failed to load initial jobs:', err);
       }
     };
     loadInitialJobs();
+    return () => { isMounted = false; };
   }, []);
 
   // Poll active jobs
@@ -60,6 +59,7 @@ export const AcapellaExtractorPage: React.FC<AcapellaExtractorPageProps> = ({
               return job;
             }
             const fresh = await fetchJob(job.id);
+            if (!fresh) return job;
             if (job.status !== 'completed' && fresh.status === 'completed') {
               toast.success('Extraction Complete!', `${fresh.original_filename} vocals are ready.`);
             } else if (job.status !== 'failed' && fresh.status === 'failed') {

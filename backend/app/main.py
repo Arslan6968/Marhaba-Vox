@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from .core.config import settings
 from .database.session import init_db, SessionLocal
@@ -64,6 +64,17 @@ app.add_middleware(
 def chrome_devtools_json():
     return JSONResponse(content={})
 
+# Handle favicon.ico gracefully
+@app.get("/favicon.ico")
+def favicon_ico():
+    svg_icon = Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "favicon.svg"
+    if svg_icon.exists():
+        return FileResponse(str(svg_icon), media_type="image/svg+xml")
+    dist_svg = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist" / "favicon.svg"
+    if dist_svg.exists():
+        return FileResponse(str(dist_svg), media_type="image/svg+xml")
+    return Response(status_code=204)
+
 # Include API routers under /api/v1
 app.include_router(health.router, prefix=settings.API_V1_STR)
 app.include_router(models.router, prefix=settings.API_V1_STR)
@@ -77,7 +88,7 @@ frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "di
 if frontend_dist.exists():
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
 
-    @app.get("/{full_path:path}")
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
     async def serve_frontend(full_path: str):
         # 1. Do not catch API or documentation routes
         if full_path.startswith("api/") or full_path == "api" or full_path.startswith("docs") or full_path == "openapi.json":
@@ -92,8 +103,15 @@ if frontend_dist.exists():
         if "." in Path(full_path).name or full_path.startswith(".well-known/"):
             raise HTTPException(status_code=404, detail=f"Static asset '{full_path}' not found")
         
-        # 4. For SPA browser navigation routes, return index.html
-        return FileResponse(str(frontend_dist / "index.html"))
+        # 4. For SPA browser navigation routes, return index.html with strict no-cache headers to prevent stale chunk errors
+        return FileResponse(
+            str(frontend_dist / "index.html"),
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
 else:
     @app.get("/")
     def root():

@@ -5,7 +5,7 @@ import { FileUploader } from '../components/FileUploader';
 import { ModelSelector } from '../components/ModelSelector';
 import { JobProgressCard } from '../components/JobProgressCard';
 import { ResultCard } from '../components/ResultCard';
-import { createJob, fetchJob, deleteJob, cancelJob, retryJob } from '../services/api';
+import { createJob, fetchJob, fetchJobs, deleteJob, cancelJob, retryJob } from '../services/api';
 import { useToast } from '../components/Toast';
 
 interface VocalRemoverPageProps {
@@ -29,20 +29,19 @@ export const VocalRemoverPage: React.FC<VocalRemoverPageProps> = ({
 
   // Load existing and active jobs on initial mount
   useEffect(() => {
+    let isMounted = true;
     const loadInitialJobs = async () => {
       try {
-        const res = await fetch('/api/v1/jobs?tool_mode=vocal_remover&limit=10');
-        if (res.ok) {
-          const data: Job[] = await res.json();
-          if (Array.isArray(data)) {
-            setActiveJobs(data);
-          }
+        const data = await fetchJobs('vocal_remover', 10);
+        if (isMounted && Array.isArray(data)) {
+          setActiveJobs(data);
         }
       } catch (err) {
         console.error('Failed to load initial jobs:', err);
       }
     };
     loadInitialJobs();
+    return () => { isMounted = false; };
   }, []);
 
   // Poll active jobs
@@ -60,6 +59,7 @@ export const VocalRemoverPage: React.FC<VocalRemoverPageProps> = ({
               return job;
             }
             const fresh = await fetchJob(job.id);
+            if (!fresh) return job;
             if (job.status !== 'completed' && fresh.status === 'completed') {
               toast.success('Separation Complete!', `${fresh.original_filename} is ready.`);
             } else if (job.status !== 'failed' && fresh.status === 'failed') {

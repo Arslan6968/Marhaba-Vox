@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Sidebar } from './components/Sidebar';
 import type { NavItemKey } from './components/Sidebar';
@@ -66,10 +66,10 @@ function AppContent() {
     loadInitialData();
   }, []);
 
-  const handleStartupComplete = () => {
+  const handleStartupComplete = useCallback(() => {
     sessionStorage.setItem('marhaba_vox_intro_seen', 'true');
     setHasStarted(true);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F6F7FB] text-[#171923] flex flex-col font-sans">

@@ -135,8 +135,19 @@ export async function clearHistory(): Promise<{ status: string; message: string 
   });
 }
 
-export async function fetchJob(jobId: string): Promise<Job> {
-  return safeFetchJson<Job>(`${API_BASE}/jobs/${jobId}`);
+export async function fetchJobs(
+  toolMode?: string,
+  limit = 20
+): Promise<Job[]> {
+  const params = new URLSearchParams();
+  if (toolMode && toolMode !== 'all') params.set('tool_mode', toolMode);
+  params.set('limit', limit.toString());
+
+  return safeFetchJson<Job[]>(`${API_BASE}/jobs?${params.toString()}`, undefined, []);
+}
+
+export async function fetchJob(jobId: string): Promise<Job | null> {
+  return safeFetchJson<Job | null>(`${API_BASE}/jobs/${jobId}`, undefined, null);
 }
 
 export async function createJob(
