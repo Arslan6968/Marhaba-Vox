@@ -188,7 +188,7 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
         {/* Individual Download Button */}
         <a
-          href={audioUrl + '&as_attachment=true'}
+          href={audioUrl + (audioUrl.includes('?') ? '&' : '?') + 'as_attachment=true'}
           download={fileName}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs border ${
             isVocal
