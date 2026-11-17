@@ -35,3 +35,9 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# PyInstaller and Inno Setup build artifacts
+build/
+dist/
+dist-setup/
+*.iss.backup

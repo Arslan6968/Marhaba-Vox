@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,6 +34,13 @@ class Settings:
     FFMPEG_PATH: str = ""
 
     def __post_init__(self):
+        if getattr(sys, "frozen", False):
+            storage_env = os.environ.get("MARHABA_VOX_STORAGE")
+            if storage_env:
+                self.STORAGE_DIR = Path(storage_env)
+            else:
+                self.STORAGE_DIR = Path.home() / "AppData" / "Local" / "MarhabaVox" / "storage"
+
         self.UPLOAD_DIR = self.STORAGE_DIR / "uploads"
         self.OUTPUT_DIR = self.STORAGE_DIR / "outputs"
         self.TEMP_DIR = self.STORAGE_DIR / "temp"
@@ -42,7 +50,22 @@ class Settings:
         self.TEMP_DIR.mkdir(parents=True, exist_ok=True)
         
         # Locate ffmpeg
-        ffmpeg_bin = shutil.which("ffmpeg")
+        ffmpeg_bin = ""
+        if getattr(sys, "frozen", False):
+            meipass = getattr(sys, "_MEIPASS", "")
+            exe_dir = Path(sys.executable).parent
+            candidates = [
+                Path(meipass) / "ffmpeg.exe",
+                exe_dir / "ffmpeg.exe",
+                exe_dir / "_internal" / "ffmpeg.exe"
+            ]
+            for cand in candidates:
+                if cand.exists():
+                    ffmpeg_bin = str(cand)
+                    break
+
+        if not ffmpeg_bin:
+            ffmpeg_bin = shutil.which("ffmpeg")
         if not ffmpeg_bin:
             winget_packages = Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft/WinGet/Packages"
             found = list(winget_packages.glob("**/ffmpeg.exe"))

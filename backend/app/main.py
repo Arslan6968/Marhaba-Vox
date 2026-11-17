@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -90,6 +91,14 @@ app.include_router(api_settings.router, prefix=settings.API_V1_STR)
 
 # Mount frontend production build if available
 frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if getattr(sys, "frozen", False):
+    meipass = Path(getattr(sys, "_MEIPASS", ""))
+    if (meipass / "frontend" / "dist").exists():
+        frontend_dist = meipass / "frontend" / "dist"
+    elif (Path(sys.executable).parent / "frontend" / "dist").exists():
+        frontend_dist = Path(sys.executable).parent / "frontend" / "dist"
+    elif (Path(sys.executable).parent / "_internal" / "frontend" / "dist").exists():
+        frontend_dist = Path(sys.executable).parent / "_internal" / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
 
