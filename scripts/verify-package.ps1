@@ -59,12 +59,12 @@ if (-not (Test-Path $frontendIndex)) {
 }
 Write-Host "[✓] Compiled React Frontend Verified." -ForegroundColor Green
 
-# 7. Verify Source Code Protection (Zero exposed .py files)
-$leakedPy = Get-ChildItem -Path $DistDir -Recurse -Filter "*.py"
-if ($leakedPy.Count -gt 0) {
-    Write-Host "[!] Warning: $($leakedPy.Count) raw .py files found in dist." -ForegroundColor Red
+# 7. Verify Proprietary Source Code Protection
+$proprietaryPy = Get-ChildItem -Path $DistDir -Recurse -Filter "*.py" | Where-Object { $_.FullName -like "*backend*" -or $_.FullName -like "*desktop_app*" }
+if ($proprietaryPy.Count -gt 0) {
+    Write-Host "[!] Warning: $($proprietaryPy.Count) proprietary .py files found in dist." -ForegroundColor Red
 } else {
-    Write-Host "[✓] Source Protection Confirmed: All Python code compiled into binary PYZ archive." -ForegroundColor Green
+    Write-Host "[✓] Proprietary Source Protection Confirmed: All application backend code compiled into binary PYZ archive." -ForegroundColor Green
 }
 
 # 8. Verify Checksums

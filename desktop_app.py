@@ -5,7 +5,25 @@ import socket
 import threading
 import webbrowser
 import urllib.request
+import inspect
 from pathlib import Path
+
+# Fix PyTorch inspect.getsource / _config_module in frozen PyInstaller environments
+_orig_findsource = inspect.findsource
+def _safe_findsource(obj):
+    try:
+        return _orig_findsource(obj)
+    except (OSError, IOError, TypeError):
+        if inspect.ismodule(obj):
+            return ["# module source unavailable in frozen environment\n"], 0
+        raise
+inspect.findsource = _safe_findsource
+
+try:
+    import torch.utils._config_module as _cm
+    _cm.get_assignments_with_compile_ignored_comments = lambda m: set()
+except Exception:
+    pass
 
 # Add project root to sys.path
 BASE_DIR = Path(__file__).resolve().parent

@@ -55,13 +55,13 @@ if (-not $SkipPyInstaller) {
     Write-Host "[✓] Standalone executable compiled successfully." -ForegroundColor Green
 }
 
-# 4. Check Source Code Protection (Ensure no raw .py files in dist)
-$leakedPy = Get-ChildItem -Path "$ProjectRoot\dist\MarhabaVox" -Recurse -Filter "*.py" -ErrorAction SilentlyContinue
-if ($leakedPy.Count -gt 0) {
-    Write-Host "[!] Warning: Found $($leakedPy.Count) raw .py files in dist directory. Removing for source protection..." -ForegroundColor Yellow
-    $leakedPy | Remove-Item -Force
+# 4. Check Source Code Protection (Ensure no proprietary backend .py files exist in dist)
+$proprietaryPy = Get-ChildItem -Path "$ProjectRoot\dist\MarhabaVox" -Recurse -Filter "*.py" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*backend*" -or $_.FullName -like "*desktop_app*" }
+if ($proprietaryPy.Count -gt 0) {
+    Write-Host "[!] Removing proprietary source files for source protection..." -ForegroundColor Yellow
+    $proprietaryPy | Remove-Item -Force
 }
-Write-Host "[✓] Source code protected: zero raw .py files exposed in distribution bundle." -ForegroundColor Green
+Write-Host "[✓] Proprietary source code protected: zero backend .py files exposed in distribution bundle." -ForegroundColor Green
 
 # 5. Compile Windows Setup Installer with Inno Setup
 Write-Host "`n[*] Compiling Inno Setup Installer with LZMA2/ultra64 solid compression..." -ForegroundColor Yellow
