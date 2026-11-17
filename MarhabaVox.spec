@@ -13,7 +13,6 @@ soundfile_data = site_packages / "_soundfile_data"
 
 datas = [
     (str(PROJ_DIR / "frontend" / "dist"), "frontend/dist"),
-    (str(PROJ_DIR / "backend" / "app"), "backend/app"),
     (str(PROJ_DIR / "app_icon.ico"), "."),
 ]
 
@@ -89,6 +88,7 @@ a = Analysis(
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
+    optimize=2,
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
@@ -110,6 +110,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(PROJ_DIR / 'app_icon.ico'),
+    version=str(PROJ_DIR / 'installer' / 'version_info.txt'),
 )
 
 coll = COLLECT(

@@ -40,4 +40,5 @@ Thumbs.db
 build/
 dist/
 dist-setup/
+release/*.exe
 *.iss.backup

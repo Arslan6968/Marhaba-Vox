@@ -10,14 +10,20 @@ class Settings:
     PROJECT_NAME: str = "Marhaba Vox"
     TAGLINE: str = "Every Voice. Every Detail."
     PARENT_BRAND: str = "MarhabaPrinters"
+    OWNER: str = "Abdul Rasheed Anjum"
+    EMAIL: str = "marhabapress@gmail.com"
+    LOCATION: str = "Hujra Shah Muqeem, Punjab, Pakistan"
     API_V1_STR: str = "/api/v1"
     
-    # Base directories
+    # Base and user directories
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
+    USER_DATA_DIR: Path = field(default_factory=lambda: Path.home() / "AppData" / "Local" / "MarhabaVox")
+    DEFAULT_MUSIC_DIR: Path = field(default_factory=lambda: Path.home() / "Music" / "Marhaba Vox")
     STORAGE_DIR: Path = field(default_factory=lambda: Path(__file__).resolve().parent.parent.parent.parent / "storage")
     UPLOAD_DIR: Path = field(init=False)
     OUTPUT_DIR: Path = field(init=False)
     TEMP_DIR: Path = field(init=False)
+    LOGS_DIR: Path = field(init=False)
     
     # Limits & Supported formats
     MAX_UPLOAD_SIZE_MB: int = 100
@@ -39,15 +45,18 @@ class Settings:
             if storage_env:
                 self.STORAGE_DIR = Path(storage_env)
             else:
-                self.STORAGE_DIR = Path.home() / "AppData" / "Local" / "MarhabaVox" / "storage"
+                self.STORAGE_DIR = self.USER_DATA_DIR / "storage"
 
         self.UPLOAD_DIR = self.STORAGE_DIR / "uploads"
         self.OUTPUT_DIR = self.STORAGE_DIR / "outputs"
         self.TEMP_DIR = self.STORAGE_DIR / "temp"
+        self.LOGS_DIR = self.USER_DATA_DIR / "logs"
         
         self.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
         self.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         self.TEMP_DIR.mkdir(parents=True, exist_ok=True)
+        self.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        self.DEFAULT_MUSIC_DIR.mkdir(parents=True, exist_ok=True)
         
         # Locate ffmpeg
         ffmpeg_bin = ""

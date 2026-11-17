@@ -1,0 +1,9 @@
+﻿# Marhaba Vox v1.0.0 — Release Checksums
+# Generated: 2026-11-17 05:29:20
+# Product: Marhaba Vox
+# Publisher: MarhabaPrinters (Abdul Rasheed Anjum)
+
+File:    MarhabaVox-Setup.exe
+Size:    247.24 MB (259245497 bytes)
+SHA-256: 3557427A8C196C562E4F5197D9C94E971D998334D3C41B7A0243A19084018DC6
+MD5:     CDB617F0EC6725F6C00DD2501ACD1242

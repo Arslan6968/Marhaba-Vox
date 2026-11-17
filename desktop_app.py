@@ -12,18 +12,23 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-# Ensure frozen environment paths
+# Ensure frozen environment paths & offline operation
 if getattr(sys, "frozen", False):
     meipass = Path(getattr(sys, "_MEIPASS", ""))
     os.environ["MARHABA_VOX_FROZEN"] = "1"
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    
     # Point HF hub and torch cache to local app data so model is persistently cached
     cache_dir = Path.home() / "AppData" / "Local" / "MarhabaVox" / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     os.environ["HF_HOME"] = str(cache_dir / "huggingface")
     os.environ["TORCH_HOME"] = str(cache_dir / "torch")
 
-    # If bundled model weights exist in MEIPASS, link/copy them to cache so it works 100% offline
+    # If bundled model weights exist in MEIPASS or _internal, copy them to cache for 100% offline isolation
     bundled_hf = meipass / "models--adefossez--HTDemucs"
+    if not bundled_hf.exists():
+        bundled_hf = Path(sys.executable).parent / "_internal" / "models--adefossez--HTDemucs"
     target_hf = cache_dir / "huggingface" / "hub" / "models--adefossez--HTDemucs"
     if bundled_hf.exists() and not target_hf.exists():
         try:
@@ -38,6 +43,22 @@ if getattr(sys, "frozen", False):
         if (p / "ffmpeg.exe").exists():
             os.environ["PATH"] = str(p) + os.pathsep + os.environ.get("PATH", "")
             break
+
+# Explicit imports for PyInstaller AST dependency analysis into PYZ-00.pyz (Source Code Protection)
+import backend.app.main
+import backend.app.core.config
+import backend.app.audio.separator
+import backend.app.audio.processor
+import backend.app.audio.worker
+import backend.app.api.health
+import backend.app.api.files
+import backend.app.api.history
+import backend.app.api.jobs
+import backend.app.api.models
+import backend.app.api.settings
+import backend.app.database.session
+import backend.app.database.models
+import backend.app.storage.manager
 
 def find_free_port(preferred: int = 8000) -> int:
     """Checks if preferred port is open, otherwise finds an available dynamic port."""
@@ -107,6 +128,8 @@ def main():
             text_select=True
         )
         webview.start()
+        print("[Marhaba Vox] Studio window closed. Cleanly terminating background processes...")
+        sys.exit(0)
     except Exception as e:
         print(f"[Notice] Native window fallback to browser: {e}")
         use_webview = False

@@ -14,12 +14,22 @@ class DemucsSeparator:
 
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device_name = "Intel/AMD Multi-Core CPU"
         self.default_model_name = "htdemucs"
-        if self.device == "cpu":
-            # Utilize all available CPU threads for optimal multi-threaded inference
+        
+        if self.device == "cuda":
+            try:
+                self.device_name = torch.cuda.get_device_name(0)
+                vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                print(f"[Marhaba Vox AI] Hardware Acceleration Active: {self.device_name} ({vram_gb:.1f} GB VRAM)")
+            except Exception:
+                self.device_name = "NVIDIA CUDA GPU"
+        else:
             num_cpus = os.cpu_count() or 4
             torch.set_num_threads(num_cpus)
             torch.set_num_interop_threads(min(2, num_cpus))
+            print(f"[Marhaba Vox AI] High-Performance CPU Engine Active: {num_cpus} threads allocated.")
+            
         if hasattr(torch, "set_float32_matmul_precision"):
             torch.set_float32_matmul_precision("high")
 
@@ -124,16 +134,38 @@ class DemucsSeparator:
                     )
 
         # Run high-performance inference with Demucs apply_model using torch.inference_mode()
-        with torch.inference_mode():
-            sources = apply_model(
-                model,
-                audio_tensor,
-                device=self.device,
-                shifts=0,
-                overlap=overlap,
-                progress=False,
-                callback=demucs_chunk_callback
-            )
+        try:
+            with torch.inference_mode():
+                sources = apply_model(
+                    model,
+                    audio_tensor,
+                    device=self.device,
+                    shifts=0,
+                    overlap=overlap,
+                    progress=False,
+                    callback=demucs_chunk_callback
+                )
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            if "out of memory" in str(e).lower() and self.device == "cuda":
+                print(f"[Marhaba Vox AI Warning] GPU VRAM exhausted. Gracefully failing over to multi-core CPU inference...")
+                if progress_callback:
+                    progress_callback(35, "GPU memory exhausted. Seamlessly continuing on multi-core CPU...")
+                torch.cuda.empty_cache()
+                self.device = "cpu"
+                model.to("cpu")
+                audio_tensor = audio_tensor.to("cpu")
+                with torch.inference_mode():
+                    sources = apply_model(
+                        model,
+                        audio_tensor,
+                        device="cpu",
+                        shifts=0,
+                        overlap=overlap,
+                        progress=False,
+                        callback=demucs_chunk_callback
+                    )
+            else:
+                raise
 
         # sources shape: [batch=1, sources=4, channels=2, samples]
         # model.sources: ['drums', 'bass', 'other', 'vocals']
