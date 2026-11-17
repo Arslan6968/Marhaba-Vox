@@ -128,38 +128,59 @@ def main():
     app_url = f"http://127.0.0.1:{port}"
     print(f"[Marhaba Vox] Studio is live at: {app_url}")
 
-    # Attempt to open native window using pywebview if supported, fallback to system browser
-    use_webview = True
-    try:
-        import webview
-        icon_path = str(BASE_DIR / "app_icon.ico")
-        if not Path(icon_path).exists() and getattr(sys, "frozen", False):
-            icon_path = str(Path(getattr(sys, "_MEIPASS", "")) / "app_icon.ico")
-        
-        window = webview.create_window(
-            title="Marhaba Vox — AI Audio Vocal Platform",
-            url=app_url,
-            width=1280,
-            height=860,
-            min_size=(960, 640),
-            background_color="#F6F7FB",
-            text_select=True
-        )
-        webview.start()
-        print("[Marhaba Vox] Studio window closed. Cleanly terminating background processes...")
-        sys.exit(0)
-    except Exception as e:
-        print(f"[Notice] Native window fallback to browser: {e}")
-        use_webview = False
+    # Launch dedicated standalone desktop application window
+    launch_app_window(app_url)
+    print("[Marhaba Vox] Studio session ended. Cleanly terminating background processes...")
+    sys.exit(0)
 
-    if not use_webview:
-        webbrowser.open(app_url)
-        print("\nPress Ctrl+C in this window to stop Marhaba Vox.\n")
+def launch_app_window(url: str):
+    """
+    Launches a dedicated standalone desktop application window.
+    Uses Chromium/Edge App Mode (native to Windows 10/11) for zero-dependency, crash-free native windowing.
+    Falls back to system default browser if needed.
+    """
+    import subprocess
+
+    user_data = Path.home() / "AppData" / "Local" / "MarhabaVox" / "app_window"
+    user_data.mkdir(parents=True, exist_ok=True)
+
+    candidates = [
+        Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
+        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+    ]
+
+    browser_exe = None
+    for cand in candidates:
+        if cand.exists():
+            browser_exe = cand
+            break
+
+    if browser_exe:
+        cmd = [
+            str(browser_exe),
+            f"--app={url}",
+            "--window-size=1280,860",
+            f"--user-data-dir={user_data}",
+            "--no-first-run",
+            "--no-default-browser-check"
+        ]
         try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nShutting down Marhaba Vox...")
+            p = subprocess.Popen(cmd)
+            p.wait()
+            return
+        except Exception:
+            pass
+
+    # Fallback to system default browser
+    webbrowser.open(url)
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
     main()

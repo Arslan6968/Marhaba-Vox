@@ -68,10 +68,6 @@ hiddenimports = [
     'torchaudio',
     'scipy',
     'scipy.signal',
-    'webview',
-    'webview.platforms.winforms',
-    'webview.platforms.edgechromium',
-    'clr',
 ]
 
 a = Analysis(
