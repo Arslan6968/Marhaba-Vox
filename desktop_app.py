@@ -190,6 +190,7 @@ def main():
     if is_marhaba_running(8765):
         print("[Marhaba Vox] Active instance detected on port 8765. Opening studio window...")
         launch_app_window("http://127.0.0.1:8765")
+        time.sleep(1)
         sys.exit(0)
 
     port = find_free_port(8765)
@@ -251,8 +252,8 @@ def monitor_session():
 def launch_app_window(url: str):
     """
     Launches a dedicated standalone desktop application window.
-    Uses Chromium/Edge App Mode (native to Windows 10/11) for zero-dependency, crash-free native windowing.
-    Falls back to system default browser if needed.
+    Uses Chromium/Edge App Mode for clean native windowing without browser address bars.
+    Falls back to Windows default browser via os.startfile.
     """
     import subprocess
 
@@ -266,19 +267,9 @@ def launch_app_window(url: str):
     ]
 
     launched = False
-    profile_dir = Path.home() / "AppData" / "Local" / "MarhabaVox" / "browser_profile"
-    profile_dir.mkdir(parents=True, exist_ok=True)
-
     for cand in candidates:
         if cand.exists():
-            cmd = [
-                str(cand),
-                f"--app={url}",
-                f"--user-data-dir={profile_dir}",
-                "--window-size=1280,860",
-                "--no-first-run",
-                "--no-default-browser-check"
-            ]
+            cmd = [str(cand), f"--app={url}"]
             try:
                 # Use DEVNULL standard streams to prevent Windows GUI invalid handle crashes ([WinError 6])
                 proc = subprocess.Popen(
@@ -289,19 +280,24 @@ def launch_app_window(url: str):
                     close_fds=True
                 )
                 time.sleep(0.5)
-                # Verify that the browser process didn't crash or abort immediately
-                if proc.poll() is None:
+                # In Chromium, exit code 0 means command line was accepted by running master process
+                code = proc.poll()
+                if code is None or code == 0:
                     launched = True
                     print(f"[Marhaba Vox] Launched app window via: {cand}")
                     break
                 else:
-                    print(f"[Marhaba Vox] Browser {cand.name} exited immediately (code {proc.poll()}), trying next...")
+                    print(f"[Marhaba Vox] Browser {cand.name} returned code {code}, trying next...")
             except Exception as e:
                 print(f"[Marhaba Vox] Browser launch failed for {cand} ({e}), trying next...")
 
     if not launched:
-        print("[Marhaba Vox] Opening studio via system default browser...")
-        webbrowser.open(url)
+        try:
+            os.startfile(url)
+            print("[Marhaba Vox] Opened studio via os.startfile")
+        except Exception:
+            webbrowser.open(url)
+            print("[Marhaba Vox] Opened studio via webbrowser.open")
 
 if __name__ == "__main__":
     main()
