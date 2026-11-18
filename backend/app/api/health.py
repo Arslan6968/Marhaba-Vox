@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 import torch
 from fastapi import APIRouter
@@ -7,6 +8,22 @@ from ..audio.worker import active_job_ids, queued_job_ids
 from ..schemas.job import SystemHealthResponse
 
 router = APIRouter(prefix="/health", tags=["Health"])
+
+last_heartbeat_time = time.time()
+client_closed = False
+
+@router.post("/heartbeat")
+def record_heartbeat():
+    global last_heartbeat_time, client_closed
+    last_heartbeat_time = time.time()
+    client_closed = False
+    return {"status": "ok", "timestamp": last_heartbeat_time}
+
+@router.post("/closing")
+def record_closing():
+    global client_closed
+    client_closed = True
+    return {"status": "closing"}
 
 @router.get("", response_model=SystemHealthResponse)
 def check_health():

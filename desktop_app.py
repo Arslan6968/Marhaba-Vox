@@ -1,12 +1,72 @@
 import os
 import sys
 import time
+import json
 import socket
 import threading
 import webbrowser
 import urllib.request
 import inspect
 from pathlib import Path
+
+# Setup persistent crash-proof logging for desktop application
+class SafeStream:
+    def __init__(self, fp=None):
+        self.fp = fp
+        self.encoding = "utf-8"
+        self.errors = "replace"
+        self.closed = False
+
+    def write(self, s):
+        if self.fp and not self.closed:
+            try:
+                self.fp.write(s)
+                self.fp.flush()
+            except Exception:
+                pass
+
+    def flush(self):
+        if self.fp and not self.closed:
+            try:
+                self.fp.flush()
+            except Exception:
+                pass
+
+    def isatty(self):
+        return False
+
+    def readable(self):
+        return False
+
+    def writable(self):
+        return True
+
+    def seekable(self):
+        return False
+
+log_dir = Path.home() / "AppData" / "Local" / "MarhabaVox" / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
+_log_fp = None
+try:
+    _log_fp = open(log_dir / "launcher.log", "a", buffering=1, encoding="utf-8")
+except Exception:
+    pass
+
+sys.stdout = SafeStream(_log_fp)
+sys.stderr = SafeStream(_log_fp)
+
+# Set Windows Selector Event Loop to eliminate Proactor WinError 10054 connection resets
+if sys.platform == "win32":
+    import asyncio
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+    try:
+        import uvicorn.loops.asyncio
+        uvicorn.loops.asyncio.asyncio_loop_factory = lambda use_subprocess=False: asyncio.SelectorEventLoop
+    except Exception:
+        pass
 
 # Fix PyTorch inspect.getsource / _config_module in frozen PyInstaller environments
 _orig_findsource = inspect.findsource
@@ -78,25 +138,43 @@ import backend.app.database.session
 import backend.app.database.models
 import backend.app.storage.manager
 
-def find_free_port(preferred: int = 8000) -> int:
-    """Checks if preferred port is open, otherwise finds an available dynamic port."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        if s.connect_ex(('127.0.0.1', preferred)) != 0:
+def is_marhaba_running(port: int = 8765) -> bool:
+    """Checks if Marhaba Vox backend is already up and healthy."""
+    try:
+        url = f"http://127.0.0.1:{port}/api/v1/health"
+        req = urllib.request.Request(url, headers={"User-Agent": "MarhabaVoxLauncher/1.0"})
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data.get("app_name") == "Marhaba Vox"
+    except Exception:
+        pass
+    return False
+
+def find_free_port(preferred: int = 8765) -> int:
+    """Checks if preferred port can actually be bound, otherwise finds an available dynamic port."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', preferred))
             return preferred
+    except OSError:
+        pass
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(('127.0.0.1', 0))
         return s.getsockname()[1]
 
-def wait_for_server(port: int, timeout: float = 25.0) -> bool:
-    """Polls the local FastAPI health check until online."""
+def wait_for_server(port: int, timeout: float = 30.0) -> bool:
+    """Polls the local FastAPI health check until online and confirms it is Marhaba Vox."""
     url = f"http://127.0.0.1:{port}/api/v1/health"
     start = time.time()
     while time.time() - start < timeout:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "MarhabaVoxLauncher/1.0"})
-            with urllib.request.urlopen(req, timeout=1.0) as resp:
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
                 if resp.status == 200:
-                    return True
+                    data = json.loads(resp.read().decode("utf-8"))
+                    if data.get("app_name") == "Marhaba Vox":
+                        return True
         except Exception:
             pass
         time.sleep(0.3)
@@ -109,7 +187,12 @@ def start_backend(port: int):
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
 
 def main():
-    port = find_free_port(8000)
+    if is_marhaba_running(8765):
+        print("[Marhaba Vox] Active instance detected on port 8765. Opening studio window...")
+        launch_app_window("http://127.0.0.1:8765")
+        sys.exit(0)
+
+    port = find_free_port(8765)
     print("==================================================")
     print("  MARHABA VOX — Desktop Application")
     print(f"  Starting local AI audio studio on port {port}...")
@@ -128,10 +211,42 @@ def main():
     app_url = f"http://127.0.0.1:{port}"
     print(f"[Marhaba Vox] Studio is live at: {app_url}")
 
+    # Start background session monitor to detect when user closes the window
+    monitor_thread = threading.Thread(target=monitor_session, daemon=True)
+    monitor_thread.start()
+
     # Launch dedicated standalone desktop application window
     launch_app_window(app_url)
-    print("[Marhaba Vox] Studio session ended. Cleanly terminating background processes...")
-    sys.exit(0)
+    
+    # Keep application running while window/server is active
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n[Marhaba Vox] Shutting down application...")
+        sys.exit(0)
+
+def monitor_session():
+    """Monitors client heartbeat and terminates when the window is closed."""
+    # 60s initial grace period for browser window to launch, render, and start heartbeats
+    time.sleep(60)
+    from backend.app.api import health
+    from backend.app.audio.worker import active_job_ids
+    while True:
+        time.sleep(3)
+        if len(active_job_ids) == 0:
+            # 1. Clean window close triggered by beforeunload beacon
+            if getattr(health, "client_closed", False):
+                time.sleep(3)
+                if getattr(health, "client_closed", False):
+                    print("[Marhaba Vox] Window closed by user. Exiting cleanly...")
+                    os._exit(0)
+
+            # 2. Inactivity timeout fallback (5 minutes of silence while idle)
+            inactive_secs = time.time() - health.last_heartbeat_time
+            if inactive_secs > 300:
+                print(f"[Marhaba Vox] Studio inactive for {int(inactive_secs)}s without jobs. Cleanly exiting...")
+                os._exit(0)
 
 def launch_app_window(url: str):
     """
@@ -141,46 +256,52 @@ def launch_app_window(url: str):
     """
     import subprocess
 
-    user_data = Path.home() / "AppData" / "Local" / "MarhabaVox" / "app_window"
-    user_data.mkdir(parents=True, exist_ok=True)
-
     candidates = [
+        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
         Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
         Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
         Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Edge" / "Application" / "msedge.exe",
-        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Google" / "Chrome" / "Application" / "chrome.exe",
-        Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Google" / "Chrome" / "Application" / "chrome.exe",
     ]
 
-    browser_exe = None
+    launched = False
+    profile_dir = Path.home() / "AppData" / "Local" / "MarhabaVox" / "browser_profile"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+
     for cand in candidates:
         if cand.exists():
-            browser_exe = cand
-            break
+            cmd = [
+                str(cand),
+                f"--app={url}",
+                f"--user-data-dir={profile_dir}",
+                "--window-size=1280,860",
+                "--no-first-run",
+                "--no-default-browser-check"
+            ]
+            try:
+                # Use DEVNULL standard streams to prevent Windows GUI invalid handle crashes ([WinError 6])
+                proc = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True
+                )
+                time.sleep(0.5)
+                # Verify that the browser process didn't crash or abort immediately
+                if proc.poll() is None:
+                    launched = True
+                    print(f"[Marhaba Vox] Launched app window via: {cand}")
+                    break
+                else:
+                    print(f"[Marhaba Vox] Browser {cand.name} exited immediately (code {proc.poll()}), trying next...")
+            except Exception as e:
+                print(f"[Marhaba Vox] Browser launch failed for {cand} ({e}), trying next...")
 
-    if browser_exe:
-        cmd = [
-            str(browser_exe),
-            f"--app={url}",
-            "--window-size=1280,860",
-            f"--user-data-dir={user_data}",
-            "--no-first-run",
-            "--no-default-browser-check"
-        ]
-        try:
-            p = subprocess.Popen(cmd)
-            p.wait()
-            return
-        except Exception:
-            pass
-
-    # Fallback to system default browser
-    webbrowser.open(url)
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        pass
+    if not launched:
+        print("[Marhaba Vox] Opening studio via system default browser...")
+        webbrowser.open(url)
 
 if __name__ == "__main__":
     main()

@@ -75,6 +75,37 @@ function AppContent() {
 
   useEffect(() => {
     loadInitialData();
+
+    const sendHeartbeat = () => {
+      fetch('/api/v1/health/heartbeat', { method: 'POST' }).catch(() => {});
+    };
+
+    // Desktop session heartbeat to notify backend that window is open
+    const heartbeatTimer = setInterval(sendHeartbeat, 4000);
+
+    // Immediately send heartbeat when user returns or un-minimizes window
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        sendHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Notify backend when window is cleanly closed or reloaded
+    const handleBeforeUnload = () => {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/v1/health/closing');
+      } else {
+        fetch('/api/v1/health/closing', { method: 'POST', keepalive: true }).catch(() => {});
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(heartbeatTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   const handleStartupComplete = useCallback(() => {
